@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head><title>Workout Input</title></head>
+<body>
+  <h1>User Inputs:</h1>
+  <form method="POST">
+    Name:<br>
+    <input type="text" name="name" required><br><br>
+
+    Age (Must be 12+):<br>
+    <input type="number" name="age" min="12" required><br><br>
+
+    Weight (90-400 lbs):<br>
+    <input type="number" name="weight" min="90" max="400" required><br><br>
+
+    Experience Level:<br>
+    <select name="experience" required>
+      <option value="">Select...</option>
+      <option value="beginner">Beginner (1-3 years)</option>
+      <option value="intermediate">Intermediate (4-7 years)</option>
+      <option value="advanced">Advanced (8-12 years)</option>
+    </select><br><br>
+
+    Equipment Availability:<br>
+    <select name="equipment" required>
+      <option value="">Select...</option>
+      <option value="bodyweight">Body Weight Only</option>
+      <option value="freeweights">Free Weights Only</option>
+      <option value="fullgym">Full Commercial Gym Setup</option>
+    </select><br><br>
+
+    Workout Frequency:<br>
+    <input type="checkbox" name="frequency" value="Monday"> Monday
+    <input type="checkbox" name="frequency" value="Tuesday"> Tuesday
+    <input type="checkbox" name="frequency" value="Wednesday"> Wednesday
+    <input type="checkbox" name="frequency" value="Thursday"> Thursday
+    <input type="checkbox" name="frequency" value="Friday"> Friday
+    <input type="checkbox" name="frequency" value="Saturday"> Saturday
+    <input type="checkbox" name="frequency" value="Sunday"> Sunday<br><br>
+
+    Workout Time Preference:<br>
+    <input type="checkbox" name="time_pref" value="Morning"> Morning
+    <input type="checkbox" name="time_pref" value="Afternoon"> Afternoon
+    <input type="checkbox" name="time_pref" value="Evening"> Evening<br><br>
+
+    <input type="submit" value="Submit">
+  </form>
+
+  {% if output %}
+    <h2>Here is your Tailored Workout Schedule {{ output.name }}:</h2>
+    <pre>{{ output.schedule }}</pre>
+  {% endif %}
+</body>
+</html>
