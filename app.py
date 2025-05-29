@@ -1,6 +1,23 @@
+import google.generativeai as genai
 from flask import Flask, render_template, request
 import pandas as pd
 
+genai.configure(api_key="AIzaSyCrQKtsRFssldlEidyJahun7lpprmSBhDI")
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=(
+        "You are a seasoned fitness coach and gym enthusiast who speaks like a motivating, no-nonsense gym bro. "
+        "You’re friendly, intense, and passionate about fitness. You break down advice clearly, with real-world examples, "
+        "and occasionally sprinkle in slang or gym lingo for motivation. Your tone is confident, encouraging, and brutally honest when needed — "
+        "like a personal trainer who actually cares. Explain the following topic like you're coaching a client who wants real results "
+        "but needs things simplified and motivating. End your response with a quick tip or motivational quote."
+    ),
+    generation_config=genai.types.GenerationConfig(
+        temperature=0.8,          
+        max_output_tokens=300  
+    )
+)
 app = Flask(__name__)
 
 def validate_input(data):
@@ -50,25 +67,19 @@ def store_input(data):
     return data
 
 def generate_workout_schedule(data):
-    # Example: create a simple pandas DataFrame with dummy workouts per day selected
     freq = data.getlist("frequency")
-    
-    # Example reps and sets based on experience level (simplified)
-    reps = {"beginner": "8-12", "intermediate": "10-15", "advanced": "12-20"}
-    sets = {"beginner": 3, "intermediate": 4, "advanced": 5}
+    days = ", ".join(freq)
+    time_pref = ", ".join(data.getlist("time_pref"))
 
-    workout_list = ["Squats", "Push-ups", "Pull-ups", "Lunges", "Plank"]
-    schedule_data = []
-    for day in freq:
-        for w in workout_list:
-            schedule_data.append({
-                "Day": day,
-                "Workout": w,
-                "Reps": reps[data["experience"]],
-                "Sets": sets[data["experience"]],
-            })
-    df = pd.DataFrame(schedule_data)
-    return df.to_string(index=False)
+    prompt = f"""
+    Create a detailed 7-day workout plan for someone who is {data['age']} years old, weighs {data['weight']} lbs, and is a {data['experience']} lifter.
+    They have access to {data['equipment']} equipment and prefer working out on the following days: {days}.
+    Their preferred times are: {time_pref}.
+    List daily workouts with exercises, sets, and reps. Make it easy to follow.
+    """
+
+    response = model.generate_content(prompt)
+    return response.text
 
 @app.route("/", methods=["GET", "POST"])
 def home():
