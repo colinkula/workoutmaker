@@ -7,13 +7,13 @@ genai.configure(api_key="AIzaSyCrQKtsRFssldlEidyJahun7lpprmSBhDI")
 
 model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
-    system_instruction=(
-        "You are a seasoned fitness coach and gym enthusiast who speaks like a motivating, no-nonsense gym bro. "
-        "You’re friendly, intense, and passionate about fitness. You break down advice clearly, with real-world examples, "
-        "and occasionally sprinkle in slang or gym lingo for motivation. Your tone is confident, encouraging, and brutally honest when needed — "
-        "like a personal trainer who actually cares. Explain the following topic like you're coaching a client who wants real results "
-        "but needs things simplified and motivating. End your response with a quick tip or motivational quote."
-    ),
+    # system_instruction=(
+    #     "You are a seasoned fitness coach and gym enthusiast who speaks like a motivating, no-nonsense gym bro. "
+    #     "You’re friendly, intense, and passionate about fitness. You break down advice clearly, with real-world examples, "
+    #     "and occasionally sprinkle in slang or gym lingo for motivation. Your tone is confident, encouraging, and brutally honest when needed — "
+    #     "like a personal trainer who actually cares. Explain the following topic like you're coaching a client who wants real results "
+    #     "but needs things simplified and motivating. End your response with a quick tip or motivational quote."
+    # ),
     generation_config=genai.types.GenerationConfig(
         temperature=0.8,          
         max_output_tokens=300  
@@ -85,28 +85,7 @@ Do NOT wrap this object in any top-level key or explanation. Only return raw JSO
     response = model.generate_content(prompt)
     raw_text = response.text.strip()
 
-    # Remove markdown ```json or ``` wrappers
-    if raw_text.startswith("```json"):
-        raw_text = raw_text.removeprefix("```json").removesuffix("```").strip()
-    elif raw_text.startswith("```"):
-        raw_text = raw_text.removeprefix("```").removesuffix("```").strip()
-
-    try:
-        workout_dict = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        return f"❌ JSON Decode Error: {e}<br><br><b>Raw response:</b><pre>{response.text}</pre>"
-
-    # Fill missing days
-    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-    for day in days:
-        if day not in workout_dict:
-            workout_dict[day] = ["Rest day"]
-
-    # Convert to DataFrame
-    df = pd.DataFrame.from_dict(workout_dict, orient='index').transpose()
-    df = df.reindex(columns=days)  # Ensure column order
-
-    return df.to_html(classes="table table-bordered", index=False, border=0)
+    return raw_text
 
 
 @app.route("/", methods=["GET", "POST"])
