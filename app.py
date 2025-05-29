@@ -69,17 +69,27 @@ def store_input(data):
 
 def generate_workout_schedule(data):
     import json
+    from markupsafe import Markup
 
     prompt = f"""
-Create a structured 7-day workout plan for someone who is {data['age']} years old, weighs {data['weight']} lbs, and is a {data['experience']} lifter.
-They have access to {data['equipment']} equipment and prefer working out on: {", ".join(data.getlist("frequency"))}.
-Preferred time of day: {", ".join(data.getlist("time_pref"))}.
+IMPORTANT: You MUST respond with ONLY valid JSON. No explanations, no motivational text, no extra words.
 
-Return ONLY a valid JSON object with these **exact keys** and nothing else:
-"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday".
+Create a 7-day workout plan for: {data['age']} years old, {data['weight']} lbs, {data['experience']} level.
+Equipment: {data['equipment']}. Workout days: {", ".join(data.getlist("frequency"))}.
+Time preference: {", ".join(data.getlist("time_pref"))}.
 
-Each key's value should be a list of workouts for that day (as strings).
-Do NOT wrap this object in any top-level key or explanation. Only return raw JSON.
+Return EXACTLY this JSON structure with no other text:
+{{
+  "monday": ["exercise 1", "exercise 2"],
+  "tuesday": ["exercise 1", "exercise 2"],
+  "wednesday": ["exercise 1", "exercise 2"],
+  "thursday": ["exercise 1", "exercise 2"],
+  "friday": ["exercise 1", "exercise 2"],
+  "saturday": ["exercise 1", "exercise 2"],
+  "sunday": ["exercise 1", "exercise 2"]
+}}
+
+ONLY JSON. Nothing else.
 """
 
     response = model.generate_content(prompt)
@@ -90,6 +100,12 @@ Do NOT wrap this object in any top-level key or explanation. Only return raw JSO
         raw_text = raw_text.removeprefix("```json").removesuffix("```").strip()
     elif raw_text.startswith("```"):
         raw_text = raw_text.removeprefix("```").removesuffix("```").strip()
+
+    # Try to extract JSON from the response if there's extra text
+    import re
+    json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+    if json_match:
+        raw_text = json_match.group()
 
     try:
         workout_dict = json.loads(raw_text)
@@ -102,13 +118,30 @@ Do NOT wrap this object in any top-level key or explanation. Only return raw JSO
         if day not in workout_dict:
             workout_dict[day] = ["Rest day"]
 
-    # Convert to DataFrame
-    df = pd.DataFrame.from_dict(workout_dict, orient='index').transpose()
-    df = df.reindex(columns=days)  # Ensure column order
-
-    return df.to_html(classes="table table-bordered", index=False, border=0)
-
-
+    # Find the maximum number of exercises across all days
+    max_exercises = max(len(exercises) for exercises in workout_dict.values())
+    
+    # Pad all days to have the same number of rows (fill with empty strings)
+    for day in days:
+        while len(workout_dict[day]) < max_exercises:
+            workout_dict[day].append("")
+    
+    # Create DataFrame with days as columns
+    df = pd.DataFrame(workout_dict)
+    
+    # Reorder columns to ensure proper day order
+    df = df[days]
+    
+    # Convert to HTML with better styling
+    html_table = df.to_html(
+        classes="table table-bordered table-striped", 
+        index=False, 
+        border=0,
+        escape=False,
+        table_id="workout-schedule"
+    )
+    
+    return Markup(html_table)
 @app.route("/", methods=["GET", "POST"])
 def home():
     if request.method == "POST":
