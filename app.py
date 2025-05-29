@@ -2,8 +2,6 @@ import google.generativeai as genai
 from flask import Flask, render_template, request
 import pandas as pd
 import json
-from markupsafe import Markup
-import re
 
 genai.configure(api_key="AIzaSyCrQKtsRFssldlEidyJahun7lpprmSBhDI")
 
@@ -11,7 +9,7 @@ model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     system_instruction=(
         "You are a seasoned fitness coach and gym enthusiast who speaks like a motivating, no-nonsense gym bro. "
-        "You're friendly, intense, and passionate about fitness. You break down advice clearly, with real-world examples, "
+        "You’re friendly, intense, and passionate about fitness. You break down advice clearly, with real-world examples, "
         "and occasionally sprinkle in slang or gym lingo for motivation. Your tone is confident, encouraging, and brutally honest when needed — "
         "like a personal trainer who actually cares. Explain the following topic like you're coaching a client who wants real results "
         "but needs things simplified and motivating. End your response with a quick tip or motivational quote."
@@ -28,6 +26,7 @@ def validate_input(data):
 
     # Validate age
     age = data.get("age", "")
+
     try:
         age = int(age)
         if age < 12:
@@ -52,10 +51,6 @@ def validate_input(data):
     if data.get("equipment") not in ["bodyweight", "freeweights", "fullgym"]:
         errors.append("Equipment availability invalid.")
 
-    # Validate workout duration
-    if data.get("duration") not in ["30", "45", "60", "90"]:
-        errors.append("Workout duration invalid.")
-
     # Validate frequency (at least one day)
     freq = data.getlist("frequency")
     if not freq:
@@ -69,49 +64,22 @@ def validate_input(data):
     return errors
 
 def store_input(data):
+    # For this example, just return data dictionary
     return data
 
 def generate_workout_schedule(data):
     import json
-    from markupsafe import Markup
-
-    # Determine workout complexity based on duration
-    duration = int(data['duration'])
-    if duration == 30:
-        complexity = "2-3 exercises per day, 2-3 sets each, focus on compound movements"
-        intensity = "short but intense"
-    elif duration == 45:
-        complexity = "3-4 exercises per day, 3-4 sets each, mix of compound and isolation"
-        intensity = "moderate intensity with good volume"
-    elif duration == 60:
-        complexity = "4-5 exercises per day, 3-4 sets each, comprehensive workout"
-        intensity = "full workout with proper warm-up and cool-down"
-    else:  # 90 minutes
-        complexity = "5-6 exercises per day, 4-5 sets each, detailed workout with accessories"
-        intensity = "extensive workout with maximum volume"
 
     prompt = f"""
-IMPORTANT: You MUST respond with ONLY valid JSON. No explanations, no motivational text, no extra words.
+Create a structured 7-day workout plan for someone who is {data['age']} years old, weighs {data['weight']} lbs, and is a {data['experience']} lifter.
+They have access to {data['equipment']} equipment and prefer working out on: {", ".join(data.getlist("frequency"))}.
+Preferred time of day: {", ".join(data.getlist("time_pref"))}.
 
-Create a 7-day workout plan for: {data['age']} years old, {data['weight']} lbs, {data['experience']} level.
-Equipment: {data['equipment']}. Workout days: {", ".join(data.getlist("frequency"))}.
-Time preference: {", ".join(data.getlist("time_pref"))}.
-Workout Duration: {duration} minutes - {complexity}.
+Return ONLY a valid JSON object with these **exact keys** and nothing else:
+"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday".
 
-Make it {intensity}. Rest days should just say "Rest" or "Active Recovery".
-
-Return EXACTLY this JSON structure with no other text:
-{{
-  "monday": ["exercise 1", "exercise 2"],
-  "tuesday": ["exercise 1", "exercise 2"],
-  "wednesday": ["exercise 1", "exercise 2"],
-  "thursday": ["exercise 1", "exercise 2"],
-  "friday": ["exercise 1", "exercise 2"],
-  "saturday": ["exercise 1", "exercise 2"],
-  "sunday": ["exercise 1", "exercise 2"]
-}}
-
-ONLY JSON. Nothing else.
+Each key's value should be a list of workouts for that day (as strings).
+Do NOT wrap this object in any top-level key or explanation. Only return raw JSON.
 """
 
     response = model.generate_content(prompt)
@@ -122,11 +90,6 @@ ONLY JSON. Nothing else.
         raw_text = raw_text.removeprefix("```json").removesuffix("```").strip()
     elif raw_text.startswith("```"):
         raw_text = raw_text.removeprefix("```").removesuffix("```").strip()
-
-    # Try to extract JSON from the response if there's extra text
-    json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-    if json_match:
-        raw_text = json_match.group()
 
     try:
         workout_dict = json.loads(raw_text)
@@ -139,30 +102,11 @@ ONLY JSON. Nothing else.
         if day not in workout_dict:
             workout_dict[day] = ["Rest day"]
 
-    # Find the maximum number of exercises across all days
-    max_exercises = max(len(exercises) for exercises in workout_dict.values())
-    
-    # Pad all days to have the same number of rows (fill with empty strings)
-    for day in days:
-        while len(workout_dict[day]) < max_exercises:
-            workout_dict[day].append("")
-    
-    # Create DataFrame with days as columns
-    df = pd.DataFrame(workout_dict)
-    
-    # Reorder columns to ensure proper day order
-    df = df[days]
-    
-    # Convert to HTML with better styling
-    html_table = df.to_html(
-        classes="table table-bordered table-striped", 
-        index=False, 
-        border=0,
-        escape=False,
-        table_id="workout-schedule"
-    )
-    
-    return Markup(html_table)
+    # Convert to DataFrame
+    df = pd.DataFrame.from_dict(workout_dict, orient='index').transpose()
+    df = df.reindex(columns=days)  # Ensure column order
+
+    return df.to_html(classes="table table-bordered", index=False, border=0)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -177,8 +121,7 @@ def home():
 
         return render_template("schedule.html", 
                                name=user_data.get("name", "User"), 
-                               schedule=workout_schedule,
-                               duration=user_data.get("duration", "60"))
+                               schedule=workout_schedule)
 
     return render_template("index.html")
 
