@@ -1,27 +1,3 @@
-<!-- <!DOCTYPE html>
-<html>
-<head><title>Your Workout Schedule</title></head>
-<body>
-  <h1>Your 7-Day Custom Workout Plan</h1>
-  <div>
-   {{ schedule | safe }}
-  </div>
-
-
-
-  <p>Would you like to change any workouts? If so, specify which:</p>
-  <form method="POST" action="/modify">
-    <input type="hidden" name="name" value="{{ name }}">
-    <input type="text" name="changes" placeholder="Specify changes here">
-    <input type="submit" value="Submit Changes">
-  </form>
-
-  <br>
-  <form action="/" method="get">
-    <button type="submit">Return to Form</button>
-  </form>
-</body>
-</html> -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -200,7 +176,7 @@
 </head>
 <body>
     <div class="workout-container">
-        <h1>Here is your Tailored Workout Schedule {{ name }}:</h1>
+        <h1>Here is your Tailored {{ duration }}-Minute Workout Schedule {{ name }}:</h1>
         
         <!-- The workout schedule table -->
         {{ schedule|safe }}
