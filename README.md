@@ -1,6 +1,6 @@
 # My Project
 
-#_User Inputs:_
+# _User Inputs:_
 
 * Age (Must be 12+)
 * Weight (between 90lbs and 400lbs)
@@ -9,7 +9,7 @@
 * Workout Frequency (Check boxes: Monday, tuesday, wednesday,thurday,friday,saturday,sunday)
 * Workout Time Preference (Check boxes: Morning, Afternoon,Evening)
 
-#_Out Put_#
+# _Outputs:_
 * Title Saying "Here is your Tailored Workout Schedule {Name}
 * pandas dataframe for each day and workouts (each workout has a rep range number of sets)
 * Additional input box stating the following: "Would you like to change any workouts? If so, specify which" which would then prompt the model to refresh the workoutplan
