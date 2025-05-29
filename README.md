@@ -4,8 +4,8 @@
 
 * Age (Must be 12+)
 * Weight (between 90lbs and 400lbs)
-* Experience (beginner (1-3 years), intermeditate (4-7 years), advanced (8-12 years)
-* Equipment availability (body weight only, free weights only, full commercial gym set up)
+* Experience (DROP DOWN beginner (1-3 years), intermeditate (4-7 years), advanced (8-12 years)
+* Equipment availability (DROP DOWN: body weight only, free weights only, full commercial gym set up)
 * Workout Frequency (Check boxes: Monday, tuesday, wednesday,thurday,friday,saturday,sunday)
 * Workout Time Preference (Check boxes: Morning, Afternoon,Evening)
 
