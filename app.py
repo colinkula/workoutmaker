@@ -7,16 +7,16 @@ genai.configure(api_key="AIzaSyCrQKtsRFssldlEidyJahun7lpprmSBhDI")
 
 model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
-    system_instruction=(
-        "You are a seasoned fitness coach and gym enthusiast who speaks like a motivating, no-nonsense gym bro. "
-        "You’re friendly, intense, and passionate about fitness. You break down advice clearly, with real-world examples, "
-        "and occasionally sprinkle in slang or gym lingo for motivation. Your tone is confident, encouraging, and brutally honest when needed — "
-        "like a personal trainer who actually cares. Explain the following topic like you're coaching a client who wants real results "
-        "but needs things simplified and motivating. End your response with a quick tip or motivational quote."
-    ),
+    # system_instruction=(
+    #     "You are a seasoned fitness coach and gym enthusiast who speaks like a motivating, no-nonsense gym bro. "
+    #     "You’re friendly, intense, and passionate about fitness. You break down advice clearly, with real-world examples, "
+    #     "and occasionally sprinkle in slang or gym lingo for motivation. Your tone is confident, encouraging, and brutally honest when needed — "
+    #     "like a personal trainer who actually cares. Explain the following topic like you're coaching a client who wants real results "
+    #     "but needs things simplified and motivating. End your response with a quick tip or motivational quote."
+    # ),
     generation_config=genai.types.GenerationConfig(
         temperature=0.8,          
-        max_output_tokens=300  
+        max_output_tokens=1000  
     )
 )
 app = Flask(__name__)
@@ -68,46 +68,23 @@ def store_input(data):
     return data
 
 def generate_workout_schedule(data):
-    import json
-
     prompt = f"""
-Create a structured 7-day workout plan for someone who is {data['age']} years old, weighs {data['weight']} lbs, and is a {data['experience']} lifter.
-They have access to {data['equipment']} equipment and prefer working out on: {", ".join(data.getlist("frequency"))}.
-Preferred time of day: {", ".join(data.getlist("time_pref"))}.
+        Create a 7-day workout plan for a person who is {data['age']} years old, weighs {data['weight']} lbs, and has {data['experience']} lifting experience.  
+        They have access to {data['equipment']} equipment and prefer working out on: {", ".join(data.getlist("frequency"))}.  
+        Preferred workout times: {", ".join(data.getlist("time_pref"))}.
 
-Return ONLY a valid JSON object with these **exact keys** and nothing else:
-"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday".
+        Return ONLY a JSON object with these exact keys (no additional keys or text):  
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday".
 
-Each key's value should be a list of workouts for that day (as strings).
-Do NOT wrap this object in any top-level key or explanation. Only return raw JSON.
-"""
+        Each day's value should be a list of workout strings planned for that day.
+
+        Do NOT include any explanations, comments, or extra formatting — only return the raw JSON.
+        """
 
     response = model.generate_content(prompt)
     raw_text = response.text.strip()
 
-    # Remove markdown ```json or ``` wrappers
-    if raw_text.startswith("```json"):
-        raw_text = raw_text.removeprefix("```json").removesuffix("```").strip()
-    elif raw_text.startswith("```"):
-        raw_text = raw_text.removeprefix("```").removesuffix("```").strip()
-
-    try:
-        workout_dict = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        return f"❌ JSON Decode Error: {e}<br><br><b>Raw response:</b><pre>{response.text}</pre>"
-
-    # Fill missing days
-    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-    for day in days:
-        if day not in workout_dict:
-            workout_dict[day] = ["Rest day"]
-
-    # Convert to DataFrame
-    df = pd.DataFrame.from_dict(workout_dict, orient='index').transpose()
-    df = df.reindex(columns=days)  # Ensure column order
-
-    return df.to_html(classes="table table-bordered", index=False, border=0)
-
+    return raw_text
 
 @app.route("/", methods=["GET", "POST"])
 def home():
