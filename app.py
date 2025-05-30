@@ -16,7 +16,7 @@ model = genai.GenerativeModel(
     # ),
     generation_config=genai.types.GenerationConfig(
         temperature=0.8,          
-        max_output_tokens=300  
+        max_output_tokens=1000  
     )
 )
 app = Flask(__name__)
@@ -71,16 +71,41 @@ def generate_workout_schedule(data):
     import json
 
     prompt = f"""
-Create a structured 7-day workout plan for someone who is {data['age']} years old, weighs {data['weight']} lbs, and is a {data['experience']} lifter.
-They have access to {data['equipment']} equipment and prefer working out on: {", ".join(data.getlist("frequency"))}.
-Preferred time of day: {", ".join(data.getlist("time_pref"))}.
+    Create a 7-day workout plan for someone who is {data['age']} years old, weighs {data['weight']} lbs, and is a {data['experience']} lifter.
 
-Return ONLY a valid JSON object with these **exact keys** and nothing else:
-"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday".
+    They have access to {data['equipment']} equipment and prefer working out on: {", ".join(data.getlist("frequency"))}.
+    Any day not selected is a rest day and should include rest and recovery tips instead of exercises.
 
-Each key's value should be a list of workouts for that day (as strings).
-Do NOT wrap this object in any top-level key or explanation. Only return raw JSON.
-"""
+    Each day must include:
+    - "description": short string like "Push Day", "Pull Day", "Rest Day", etc.
+    - "items": a list of either exercises (for workout days) or rest tips (for rest days)
+
+    Each exercise must be a JSON object with:
+    - "exercise": string (e.g., "Barbell Bench Press")
+    - "sets": integer (e.g., 3)
+    - "reps": string (e.g., "8-12")
+    - "rest": integer seconds (e.g., 60)
+
+    At the end, include a "sources" key with a list of science-based resources or research links used to build the plan.
+
+    Return ONLY a valid JSON object with exactly these keys:
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "sources"
+
+    Each day maps to an object with "description" (string) and "items" (list).
+
+    Example structure:
+    {{ 
+    "monday": {{
+        "description": "Push Day",
+        "items": [
+        {{ "exercise": "Barbell Bench Press", "sets": 3, "reps": "8-12", "rest": 60 }},
+        ...
+        ]
+    }},
+    ...
+    "sources": [ "https://example.com", ... ]
+    }}
+    """
 
     response = model.generate_content(prompt)
     raw_text = response.text.strip()
