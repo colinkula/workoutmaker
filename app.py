@@ -69,22 +69,47 @@ def store_input(data):
 
 def generate_workout_schedule(data):
     prompt = f"""
-        Create a 7-day workout plan for a person who is {data['age']} years old, weighs {data['weight']} lbs, and has {data['experience']} lifting experience.  
-        They have access to {data['equipment']} equipment and prefer working out on: {", ".join(data.getlist("frequency"))}.  
-        Preferred workout times: {", ".join(data.getlist("time_pref"))}.
+    Create a 7-day workout plan for someone who is {data['age']} years old, weighs {data['weight']} lbs, and is a {data['experience']} lifter.
 
-        Return ONLY a JSON object with these exact keys (no additional keys or text):  
-        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday".
+    They have access to {data['equipment']} equipment and prefer working out on: {", ".join(data.getlist("frequency"))}.
+    Any day not selected is a rest day and should include rest and recovery tips instead of exercises.
 
-        Each day's value should be a list of workout strings planned for that day.
+    Each day must include:
+    - "description": short string like "Push Day", "Pull Day", "Rest Day", etc.
+    - "items": a list of either exercises (for workout days) or rest tips (for rest days)
 
-        Do NOT include any explanations, comments, or extra formatting — only return the raw JSON.
-        """
+    Each exercise must be a JSON object with:
+    - "exercise": string (e.g., "Barbell Bench Press")
+    - "sets": integer (e.g., 3)
+    - "reps": string (e.g., "8-12")
+    - "rest": integer seconds (e.g., 60)
+
+    At the end, include a "sources" key with a list of science-based resources or research links used to build the plan.
+
+    Return ONLY a valid JSON object with exactly these keys:
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "sources"
+
+    Each day maps to an object with "description" (string) and "items" (list).
+
+    Example structure:
+    {{ 
+    "monday": {{
+        "description": "Push Day",
+        "items": [
+        {{ "exercise": "Barbell Bench Press", "sets": 3, "reps": "8-12", "rest": 60 }},
+        ...
+        ]
+    }},
+    ...
+    "sources": [ "https://example.com", ... ]
+    }}
+    """
 
     response = model.generate_content(prompt)
     raw_text = response.text.strip()
 
     return raw_text
+
 
 @app.route("/", methods=["GET", "POST"])
 def home():
